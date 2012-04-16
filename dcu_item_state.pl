@@ -9,7 +9,6 @@ use File::Basename;
 use HTFeed::Volume;
 use Digest::MD5;
 
-my $dbh = get_dbh();
 my $move = shift @ARGV;
 
 sub get_artist {
@@ -25,10 +24,10 @@ while(my $line = <>) {
     my $pt_objid = s2ppchars($barcode);
     my $bookpath = "/sdr1/obj/mdp/" . id2ppath($barcode) . "/$pt_objid";
     my ($google_state,$error_pct,$conditions,$src_lib) = 
-    $dbh->selectrow_array("select state,overall_error,conditions,src_lib_bibkey from mdp_tracking.grin where id = '$barcode' and namespace = 'mdp'");
-    my ($queue_status,$lastupdate_days) = $dbh->selectrow_array("select status,datediff(CURRENT_TIMESTAMP,update_stamp) from queue where id = '$barcode' and namespace = 'mdp'");
-    my ($blacklisted) = $dbh->selectrow_array("select count(*) from blacklist where id = '$barcode' and namespace = 'mdp'");
-#        my ($error_message) = $dbh->selectrow_array("select description from errors e where barcode = '$barcode' order by lastupdate desc limit 1");
+    get_dbh()->selectrow_array("select state,overall_error,conditions,src_lib_bibkey from mdp_tracking.grin where id = '$barcode' and namespace = 'mdp'");
+    my ($queue_status,$lastupdate_days) = get_dbh()->selectrow_array("select status,datediff(CURRENT_TIMESTAMP,update_stamp) from queue where id = '$barcode' and namespace = 'mdp'");
+    my ($blacklisted) = get_dbh()->selectrow_array("select count(*) from blacklist where id = '$barcode' and namespace = 'mdp'");
+#        my ($error_message) = get_dbh()->selectrow_array("select description from errors e where barcode = '$barcode' order by lastupdate desc limit 1");
 
     if($blacklisted) {
         $state = 'BLACKLISTED';
@@ -55,7 +54,7 @@ while(my $line = <>) {
         if( ($queue_status eq 'available' or $queue_status eq 'in_process') and $lastupdate_days > 7) {
             $state = 'STUCK_IN_PROCESS';
         } elsif($queue_status eq 'punted') {
-            my ($msg,$field) = $dbh->selectrow_array("select message, field from log where id = '$barcode' and namespace = 'mdp' and level = 'ERROR' order by timestamp desc limit 1");
+            my ($msg,$field) = get_dbh()->selectrow_array("select message, field from log where id = '$barcode' and namespace = 'mdp' and level = 'ERROR' order by timestamp desc limit 1");
             $state = "ERROR $msg $field";
         } elsif($lastupdate_days > 2) {
             $state = 'STUCK_IN_QUEUE';
@@ -111,7 +110,7 @@ while(my $line = <>) {
     }
 
     my @dates = 
-    $dbh->selectrow_array("select scan_date,process_date,analyze_date,convert_date,dl_date from mdp_tracking.grin where id = '$barcode' and namespace = 'mdp'");
+    get_dbh()->selectrow_array("select scan_date,process_date,analyze_date,convert_date,dl_date from mdp_tracking.grin where id = '$barcode' and namespace = 'mdp'");
 
     if($move and $state =~ /DCU/) {
         my $dirname = dirname($line);
