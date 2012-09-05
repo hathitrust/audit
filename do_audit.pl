@@ -9,14 +9,21 @@ use Date::Manip;
 use Getopt::Long;
 # step 1: fetch hathifiles, extract IDs, sort | uniq.
 
-# must be like 20110914 (YYYYMMDD)
-my $audit_as_of = shift @ARGV;
-# limit auditing to namespace
-my $namespace = shift @ARGV;
 # should we do each stage?
 my $fetch_allids = 0;
 my $fetch_hathifiles = 0;
 my $do_audit = 1;
+
+GetOptions(
+    'fetch-all-ids|f!' => \$fetch_allids,
+    'fetch-hathifiles|h!' => \$fetch_hathifiles,
+    'do-audit|a!' => \$do_audit
+);
+
+# must be like 20110914 (YYYYMMDD)
+my $audit_as_of = shift @ARGV;
+# limit auditing to namespace
+my $namespace = shift @ARGV;
 
 my $last_has = "";
 my $objid = "";
@@ -27,7 +34,7 @@ my $user = get_config('handle'=>'database'=>'username');
 my $passwd = get_config('handle'=>'database'=>'password');
 
 
-die("Usage: $0 YYYYMMDD\n") unless $audit_as_of and $audit_as_of =~ /^\d{8}$/;
+die("Usage: $0 [--fetch-all-ids --fetch-hathifiles --do-audit] YYYYMMDD\n") unless $audit_as_of and $audit_as_of =~ /^\d{8}$/;
 
 if($fetch_hathifiles) {
     my @hathifiles = ();
