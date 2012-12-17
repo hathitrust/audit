@@ -78,11 +78,11 @@ if( $fetch_allids ) {
 
 
     my $tables = {
-        'mdp.rights_log' => 'time',
-        'audit' => 'zip_date',
-        'nonreturned' => '1970-01-01',
-        'queue' => 'update_stamp',
-        'queue_done' => 'update_stamp',
+        'rights_log' => 'time',
+        'feed_audit' => 'zip_date',
+        'feed_nonreturned' => '1970-01-01',
+        'feed_queue' => 'update_stamp',
+        'feed_queue_done' => 'update_stamp',
     };
 
     while (my ($table,$time_col) = each(%$tables)) {
@@ -113,7 +113,7 @@ if($do_audit) {
     my $audit_fhs = {};
     my $audit_fh_buffers = {};
     # for each ID, fetch all info from tables above 
-    foreach my $table (qw(mdp.rights_log audit nonreturned queue queue_done handle hathifiles)) {
+    foreach my $table (qw(rights_log feed_audit feed_nonreturned feed_queue feed_queue_done handle hathifiles)) {
         open($audit_fhs->{$table},"<${table}_audit_${audit_as_of}") or die("Can't open ${table}_audit_${audit_as_of}: $!");
     }
 
@@ -145,18 +145,18 @@ if($do_audit) {
         # Audit rules for each ID:
 
         # hathifiles -> audit, rights_log, handle
-        has($vol_info,'hathifiles') &&  audit_has($vol_info,[qw(audit mdp.rights_log handle)]);
+        has($vol_info,'hathifiles') &&  audit_has($vol_info,[qw(feed_audit rights_log handle)]);
         # audit, age > 2 days -> rights_log, hathifiles, handle
-        has($vol_info,'audit',2) && audit_has($vol_info,[qw(mdp.rights_log hathifiles handle)]);
+        has($vol_info,'feed_audit',2) && audit_has($vol_info,[qw(rights_log hathifiles handle)]);
         # rights_log -> audit, hathifiles, handle (warning only)
-        has($vol_info,'mdp.rights_log',0) && audit_has($vol_info,[qw(audit hathifiles handle)]);
+        has($vol_info,'rights_log',0) && audit_has($vol_info,[qw(feed_audit hathifiles handle)]);
         # rights_log.source = google -> grin
         # nonreturned -> !audit, !hathifiles, !queue, !queue_done
-        has($vol_info,'nonreturned') && audit_hasnt($vol_info,[qw(audit hathifiles queue queue_done)]);
+        has($vol_info,'feed_nonreturned') && audit_hasnt($vol_info,[qw(feed_audit hathifiles feed_queue feed_queue_done)]);
         # queue_done -> audit, rights_log, hathifiles
-        has($vol_info,'queue_done',0) && audit_has($vol_info,[qw(audit mdp.rights_log hathifiles)]);
+        has($vol_info,'feed_queue_done',0) && audit_has($vol_info,[qw(feed_audit mdp.rights_log hathifiles)]);
         # handle -> audit
-        has($vol_info,'handle',0) && audit_has($vol_info,[qw(audit)]);
+        has($vol_info,'handle',0) && audit_has($vol_info,[qw(feed_audit)]);
         # TODO: zip_date ~= mets_date, last ingest date
     }
 }
