@@ -5,8 +5,8 @@ use warnings;
 use POSIX qw(strftime);
 use HTFeed::Config qw(get_config);
 use Data::Dumper;
-use Date::Manip;
 use Getopt::Long;
+use Date::Parse;
 # step 1: fetch hathifiles, extract IDs, sort | uniq.
 
 # should we do each stage?
@@ -35,6 +35,8 @@ my $passwd = get_config('handle'=>'database'=>'password');
 
 
 die("Usage: $0 [--fetch-all-ids --fetch-hathifiles --do-audit] YYYYMMDD\n") unless $audit_as_of and $audit_as_of =~ /^\d{8}$/;
+
+my $audit_epoch = str2time($audit_as_of);
 
 if($fetch_hathifiles) {
     my @hathifiles = ();
@@ -78,11 +80,11 @@ if( $fetch_allids ) {
 
 
     my $tables = {
-        'rights_log' => 'time',
-        'feed_audit' => 'zip_date',
-        'feed_nonreturned' => '1970-01-01',
-        'feed_queue' => 'update_stamp',
-        'feed_queue_done' => 'update_stamp',
+        'mdp.rights_log' => 'time',
+        'audit' => 'zip_date',
+        'nonreturned' => '1970-01-01',
+        'queue' => 'update_stamp',
+        'queue_done' => 'update_stamp',
     };
 
     while (my ($table,$time_col) = each(%$tables)) {
@@ -113,7 +115,7 @@ if($do_audit) {
     my $audit_fhs = {};
     my $audit_fh_buffers = {};
     # for each ID, fetch all info from tables above 
-    foreach my $table (qw(rights_log feed_audit feed_nonreturned feed_queue feed_queue_done handle hathifiles)) {
+    foreach my $table (qw(mdp.rights_log audit nonreturned queue queue_done handle hathifiles)) {
         open($audit_fhs->{$table},"<${table}_audit_${audit_as_of}") or die("Can't open ${table}_audit_${audit_as_of}: $!");
     }
 
@@ -145,18 +147,18 @@ if($do_audit) {
         # Audit rules for each ID:
 
         # hathifiles -> audit, rights_log, handle
-        has($vol_info,'hathifiles') &&  audit_has($vol_info,[qw(feed_audit rights_log handle)]);
+        has($vol_info,'hathifiles') &&  audit_has($vol_info,[qw(audit mdp.rights_log handle)]);
         # audit, age > 2 days -> rights_log, hathifiles, handle
-        has($vol_info,'feed_audit',2) && audit_has($vol_info,[qw(rights_log hathifiles handle)]);
+        has($vol_info,'audit',2) && audit_has($vol_info,[qw(mdp.rights_log hathifiles handle)]);
         # rights_log -> audit, hathifiles, handle (warning only)
-        has($vol_info,'rights_log',0) && audit_has($vol_info,[qw(feed_audit hathifiles handle)]);
+        has($vol_info,'mdp.rights_log',0) && audit_has($vol_info,[qw(audit hathifiles handle)]);
         # rights_log.source = google -> grin
         # nonreturned -> !audit, !hathifiles, !queue, !queue_done
-        has($vol_info,'feed_nonreturned') && audit_hasnt($vol_info,[qw(feed_audit hathifiles feed_queue feed_queue_done)]);
+        has($vol_info,'nonreturned') && audit_hasnt($vol_info,[qw(audit hathifiles queue queue_done)]);
         # queue_done -> audit, rights_log, hathifiles
-        has($vol_info,'feed_queue_done',0) && audit_has($vol_info,[qw(feed_audit mdp.rights_log hathifiles)]);
+        has($vol_info,'queue_done',0) && audit_has($vol_info,[qw(audit mdp.rights_log hathifiles)]);
         # handle -> audit
-        has($vol_info,'handle',0) && audit_has($vol_info,[qw(feed_audit)]);
+        has($vol_info,'handle',0) && audit_has($vol_info,[qw(audit)]);
         # TODO: zip_date ~= mets_date, last ingest date
     }
 }
@@ -169,7 +171,7 @@ sub has {
     if( defined $obj->{$key} and 
         (not defined $days_before_audit
                 or (defined $obj->{$key}[1]
-                    and Delta_Format(DateCalc($obj->{$key}[1],$audit_as_of),0,"%dt") > $days_before_audit))) {
+                    and $audit_epoch - str2time($obj->{$key}[1]) > 86400*$days_before_audit))) {
 #        print "$objid has $key\n";
         return 1;
     } else {
