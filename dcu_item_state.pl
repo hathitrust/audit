@@ -132,7 +132,7 @@ sub get_all_directory_files {
     opendir(my $dh,$dir) or die("Can't opendir $dir: $!");
 
     foreach my $file (readdir $dh) {
-        push(@directory_files,$file) unless ($file =~ /^\.+$/ or $file eq 'checksum.md5' or $file eq 'aiim.tif' or $file eq 'rit.tif');
+        push(@directory_files,$file) unless ($file =~ /^\.+$/ or $file eq 'checksum.md5' or $file eq 'aiim.tif' or $file eq 'rit.tif' or file eq 'notes.txt');
     }
     closedir($dh) or croak("Can't closedir $dir: $!");
 
