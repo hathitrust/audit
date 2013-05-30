@@ -138,7 +138,8 @@ sub get_all_directory_files {
                 or $file eq 'aiim.tif' 
                 or $file eq 'rit.tif' 
                 or $file eq 'notes.txt' 
-                or $file eq 'pageview.dat');
+                or $file eq 'pageview.dat'
+                or $file =~ /^\.txt$/);
     }
     closedir($dh) or croak("Can't closedir $dir: $!");
 
