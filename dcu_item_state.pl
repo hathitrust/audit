@@ -125,7 +125,7 @@ while(my $line = <>) {
 }
 
 
-# return list of files in a directory, skipping ".", "..", and several blacklisted files
+# return list of image files in a directory
 sub get_all_directory_files {
     my $dir = shift;
     my @directory_files;
@@ -133,13 +133,7 @@ sub get_all_directory_files {
 
     foreach my $file (readdir $dh) {
         push(@directory_files,$file) 
-        unless ($file =~ /^\.+$/ 
-                or $file eq 'checksum.md5'
-                or $file eq 'aiim.tif' 
-                or $file eq 'rit.tif' 
-                or $file eq 'notes.txt' 
-                or $file eq 'pageview.dat'
-                or $file =~ /^\.txt$/);
+        if $file =~ /^\d{8}\.(jp2|tif)$/;
     }
     closedir($dh) or croak("Can't closedir $dir: $!");
 
