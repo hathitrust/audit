@@ -2,6 +2,7 @@
 
 use strict;
 use HTFeed::DBTools qw(get_dbh);
+use HTFeed::Stage::Unpack;
 use File::Pairtree qw(s2ppchars id2ppath);
 use POSIX qw(strftime);
 use File::Basename;
@@ -18,7 +19,7 @@ sub get_artist {
 
 while(my $line = <>) {
     chomp($line);
-    my ($barcode) = ($line =~ /(\d{14})$/);
+    my ($barcode) = ($line =~ /(\d{14})\.zip$/);
     next unless $barcode;
     my $state = 'UNKNOWN';
     my $pt_objid = s2ppchars($barcode);
@@ -27,7 +28,6 @@ while(my $line = <>) {
     get_dbh()->selectrow_array("select state,overall_error,conditions,src_lib_bibkey from feed_grin where id = '$barcode' and namespace = 'mdp'");
     my ($queue_status,$lastupdate_days) = get_dbh()->selectrow_array("select status,datediff(CURRENT_TIMESTAMP,update_stamp) from feed_queue where id = '$barcode' and namespace = 'mdp'");
     my ($blacklisted) = get_dbh()->selectrow_array("select count(*) from feed_blacklist where id = '$barcode' and namespace = 'mdp'");
-#        my ($error_message) = get_dbh()->selectrow_array("select description from errors e where barcode = '$barcode' order by lastupdate desc limit 1");
 
     if($blacklisted) {
         $state = 'BLACKLISTED';
@@ -86,8 +86,11 @@ while(my $line = <>) {
 			my $repo_cheksums = $volume->get_checksums();
             %{$repo_image_md5_sums} = map {$_ => $repo_cheksums->{$_}} @{$repo_image_files};
 
-            # get source checksums
-            my $files = get_all_directory_files($line);
+            # get source checksums -- need to unzip from source
+            my $unzip = new HTFeed::Stage::Unzip($volume);
+            my $staging = $volume->get_staging_directory();
+            $unzip->unzip_file($line,$volume->get_staging_directory());
+            my $files = get_all_directory_files($staging);
             my %src_image_md5_sums = map {$_ => md5sum("$line/$_")} @{$files};
             $src_image_md5_sums = \%src_image_md5_sums
         };
@@ -96,7 +99,6 @@ while(my $line = <>) {
             warn "MD5_CHECK_ABORTED: $@";
         } else {
             # compare chksum hashes
-            
             
             if (hash_cmp($repo_image_md5_sums,$src_image_md5_sums)) {
                 $state .= "\tMD5_CHECK_OK";
