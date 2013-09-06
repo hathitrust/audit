@@ -1,11 +1,13 @@
 #!/usr/bin/perl
 
 use strict;
+use HTFeed::Log { root_logger => 'INFO, screen' };
 use HTFeed::DBTools qw(get_dbh);
 use HTFeed::Stage::Unpack;
 use File::Pairtree qw(s2ppchars id2ppath);
 use POSIX qw(strftime);
 use File::Basename;
+use Carp qw(croak);
 
 use HTFeed::Volume;
 use Digest::MD5;
@@ -87,11 +89,11 @@ while(my $line = <>) {
             %{$repo_image_md5_sums} = map {$_ => $repo_cheksums->{$_}} @{$repo_image_files};
 
             # get source checksums -- need to unzip from source
-            my $unzip = new HTFeed::Stage::Unzip($volume);
+            my $unzip = new HTFeed::Stage::Unpack(volume => $volume);
             my $staging = $volume->get_staging_directory();
             $unzip->unzip_file($line,$volume->get_staging_directory());
             my $files = get_all_directory_files($staging);
-            my %src_image_md5_sums = map {$_ => md5sum("$line/$_")} @{$files};
+            my %src_image_md5_sums = map {$_ => md5sum("$staging/$_")} @{$files};
             $src_image_md5_sums = \%src_image_md5_sums
         };
         if($@ or !$repo_image_md5_sums or !$src_image_md5_sums) {
@@ -121,7 +123,7 @@ while(my $line = <>) {
     } 
 
     if(!$move) {
-        print join("\t",$line,$state,@dates), "\n";
+        print join("\t",map { defined $_ ? $_ : '' } ($line,$state,@dates)), "\n";
     }
 
 }
