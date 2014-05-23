@@ -28,6 +28,9 @@ my $namespace = shift @ARGV;
 my $last_has = "";
 my $objid = "";
 
+# command for sorting
+my $SORT = "sort -S 4G -T /ram";
+
 # handle server
 my $datasource = get_config('handle'=>'database'=>'datasource');
 my $user = get_config('handle'=>'database'=>'username');
@@ -60,7 +63,7 @@ if($fetch_hathifiles) {
     }
 
     print "Sorting hathifiles\n";
-    system("sort -k 1,1 hathifiles_ids_unsorted_$audit_as_of | uniq > hathifiles_audit_$audit_as_of");
+    system("$SORT -k 1,1 hathifiles_ids_unsorted_$audit_as_of | uniq > hathifiles_audit_$audit_as_of");
 }
 
 
@@ -103,7 +106,7 @@ if( $fetch_allids ) {
 
     # sort | uniq
     print "sorting ids\n";
-    system("cat *_audit_$audit_as_of | cut -f 1 | sort -k 1,1 | uniq > ht_all_ids_audit_$audit_as_of");
+    system("cat *_audit_$audit_as_of | cut -f 1 | $SORT -k 1,1 | uniq > ht_all_ids_audit_$audit_as_of");
 }
 
 if($do_audit) {
@@ -226,7 +229,7 @@ sub mysql_dump_generic {
 
     print STDERR $query, "\n";
 
-    system(qq(mysql -B -N -h $host -u $user --password="$password" $db  -e "$query" | sort -k 1,1 > ${table}_audit_${audit_as_of}));
+    system(qq(mysql -B -N -h $host -u $user --password="$password" $db  -e "$query" | $SORT -k 1,1 > ${table}_audit_${audit_as_of}));
 }
 
 sub mysql_dump_handles {
