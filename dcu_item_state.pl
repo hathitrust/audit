@@ -71,7 +71,7 @@ while(my $line = <>) {
         $date = strftime('%Y-%m-%d',localtime($date));
 # try to grep out artist
         my $artist = get_artist("$bookpath/$pt_objid.mets.xml");
-        if($artist =~ /Trigonix/im or $artist =~ /Michigan/im or $artist =~ /Zeutschel/ or $artist =~ /MiU/i) {
+        if($artist =~ /Trigonix/im or $artist =~ /Michigan/im or $artist =~ /Zeutschel/ or $artist =~ /MiU/i or $artist =~ /umich/i) {
             $state = "$state DCU\t$date";
         } elsif($artist =~ /Google/i or $artist =~ /CaMv-Goo/i) {
             $state = "$state GOOGLE\t$date";
