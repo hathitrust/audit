@@ -154,8 +154,9 @@ if($do_audit) {
         # rights_log -> audit, hathifiles, handle (warning only)
         has($vol_info,'rights_log',0) && audit_has($vol_info,[qw(feed_audit hathifiles handle)]);
         # rights_log.source = google -> grin
-        # nonreturned -> !audit, !hathifiles, !queue, !queue_done
-        has($vol_info,'feed_nonreturned') && audit_hasnt($vol_info,[qw(feed_audit hathifiles feed_queue feed_queue_done)]);
+#        PENDING REORGANIZATION 2015-02-17 -- will keep all items for caching info about collection code / digitization agent from Zephir
+#        # nonreturned -> !audit, !hathifiles, !queue, !queue_done
+#        has($vol_info,'feed_nonreturned') && audit_hasnt($vol_info,[qw(feed_audit hathifiles feed_queue feed_queue_done)]);
         # queue_done -> audit, rights_log, hathifiles
         has($vol_info,'feed_queue_done',0) && audit_has($vol_info,[qw(feed_audit rights_log hathifiles)]);
         # handle -> audit
