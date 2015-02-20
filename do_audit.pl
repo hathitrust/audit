@@ -72,7 +72,7 @@ if( $fetch_allids ) {
     #  hathifiles
     #  rights_log
     #  feed_audit
-    #  feed_nonreturned
+    #  feed_zephir_items
     #  feed_queue
     #  feed_queue_done
     #  handles
@@ -83,7 +83,7 @@ if( $fetch_allids ) {
     my $tables = {
         'rights_log' => 'time',
         'feed_audit' => 'zip_date',
-        'feed_nonreturned' => '1970-01-01',
+        'feed_zephir_items' => '1970-01-01',
         'feed_queue' => 'update_stamp',
         'feed_queue_done' => 'update_stamp',
     };
@@ -116,7 +116,7 @@ if($do_audit) {
     my $audit_fhs = {};
     my $audit_fh_buffers = {};
     # for each ID, fetch all info from tables above 
-    foreach my $table (qw(rights_log feed_audit feed_nonreturned feed_queue feed_queue_done handle hathifiles)) {
+    foreach my $table (qw(rights_log feed_audit feed_zephir_items feed_queue feed_queue_done handle hathifiles)) {
         open($audit_fhs->{$table},"<${table}_audit_${audit_as_of}") or die("Can't open ${table}_audit_${audit_as_of}: $!");
     }
 
@@ -148,17 +148,17 @@ if($do_audit) {
         # Audit rules for each ID:
 
         # hathifiles -> audit, rights_log, handle
-        has($vol_info,'hathifiles') &&  audit_has($vol_info,[qw(feed_audit rights_log handle)]);
+        has($vol_info,'hathifiles') &&  audit_has($vol_info,[qw(feed_audit rights_log handle feed_zephir_items)]);
         # audit, age > 2 days -> rights_log, hathifiles, handle
-        has($vol_info,'feed_audit',2) && audit_has($vol_info,[qw(rights_log hathifiles handle)]);
+        has($vol_info,'feed_audit',2) && audit_has($vol_info,[qw(rights_log hathifiles handle feed_zephir_items)]);
         # rights_log -> audit, hathifiles, handle (warning only)
-        has($vol_info,'rights_log',0) && audit_has($vol_info,[qw(feed_audit hathifiles handle)]);
+        has($vol_info,'rights_log',0) && audit_has($vol_info,[qw(feed_audit hathifiles handle feed_zephir_items)]);
         # rights_log.source = google -> grin
 #        PENDING REORGANIZATION 2015-02-17 -- will keep all items for caching info about collection code / digitization agent from Zephir
-#        # nonreturned -> !audit, !hathifiles, !queue, !queue_done
-#        has($vol_info,'feed_nonreturned') && audit_hasnt($vol_info,[qw(feed_audit hathifiles feed_queue feed_queue_done)]);
+#        # zephir_items -> !audit, !hathifiles, !queue, !queue_done
+#        has($vol_info,'feed_zephir_items') && audit_hasnt($vol_info,[qw(feed_audit hathifiles feed_queue feed_queue_done)]);
         # queue_done -> audit, rights_log, hathifiles
-        has($vol_info,'feed_queue_done',0) && audit_has($vol_info,[qw(feed_audit rights_log hathifiles)]);
+        has($vol_info,'feed_queue_done',0) && audit_has($vol_info,[qw(feed_audit rights_log hathifiles feed_zephir_items handle)]);
         # handle -> audit
         has($vol_info,'handle',0) && audit_has($vol_info,[qw(feed_audit)]);
     }
