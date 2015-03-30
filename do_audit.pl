@@ -97,6 +97,9 @@ if( $fetch_allids ) {
         }
     }
 
+    mysql_dump('nonreturned',"select concat(namespace,'.',id), '1970-01-01' from feed_zephir_items where returned = '0'");
+    mysql_dump('returned',"select concat(namespace,'.',id), '1970-01-01' from feed_zephir_items where returned = '1'");
+
     print "Fetching handles\n";
     if($namespace) {
         mysql_dump_handles("select lower(substring(handle,6)), from_unixtime(timestamp) from handles where type = 'URL' and data like 'http://babel.hathitrust.org%' and handle like '2027/$namespace.%'");
@@ -148,17 +151,15 @@ if($do_audit) {
         # Audit rules for each ID:
 
         # hathifiles -> audit, rights_log, handle
-        has($vol_info,'hathifiles') &&  audit_has($vol_info,[qw(feed_audit rights_log handle feed_zephir_items)]);
+        has($vol_info,'hathifiles') &&  audit_has($vol_info,[qw(feed_audit rights_log handle returned)]);
         # audit, age > 2 days -> rights_log, hathifiles, handle
-        has($vol_info,'feed_audit',2) && audit_has($vol_info,[qw(rights_log hathifiles handle feed_zephir_items)]);
+        has($vol_info,'feed_audit',2) && audit_has($vol_info,[qw(rights_log hathifiles handle returned)]);
         # rights_log -> audit, hathifiles, handle (warning only)
         has($vol_info,'rights_log',0) && audit_has($vol_info,[qw(feed_audit hathifiles handle feed_zephir_items)]);
         # rights_log.source = google -> grin
-#        PENDING REORGANIZATION 2015-02-17 -- will keep all items for caching info about collection code / digitization agent from Zephir
-#        # zephir_items -> !audit, !hathifiles, !queue, !queue_done
-#        has($vol_info,'feed_zephir_items') && audit_hasnt($vol_info,[qw(feed_audit hathifiles feed_queue feed_queue_done)]);
+        has($vol_info,'nonreturned') && audit_hasnt($vol_info,[qw(feed_audit hathifiles feed_queue feed_queue_done)]);
         # queue_done -> audit, rights_log, hathifiles
-        has($vol_info,'feed_queue_done',0) && audit_has($vol_info,[qw(feed_audit rights_log hathifiles feed_zephir_items handle)]);
+        has($vol_info,'feed_queue_done',0) && audit_has($vol_info,[qw(feed_audit rights_log hathifiles returned)]);
         # handle -> audit
         has($vol_info,'handle',0) && audit_has($vol_info,[qw(feed_audit)]);
     }
