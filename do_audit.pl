@@ -102,9 +102,9 @@ if( $fetch_allids ) {
 
     print "Fetching handles\n";
     if($namespace) {
-        mysql_dump_handles("select lower(substring(handle,6)), from_unixtime(timestamp) from handles where type = 'URL' and data like 'http://babel.hathitrust.org%' and handle like '2027/$namespace.%'");
+        mysql_dump_handles("select lower(substring(handle,6)), from_unixtime(timestamp) from handles where type = 'URL' and data like 'https://babel.hathitrust.org%' and handle like '2027/$namespace.%'");
     } else {
-        mysql_dump_handles("select lower(substring(handle,6)), from_unixtime(timestamp) from handles where type = 'URL' and data like 'http://babel.hathitrust.org%'");
+        mysql_dump_handles("select lower(substring(handle,6)), from_unixtime(timestamp) from handles where type = 'URL' and data like 'https://babel.hathitrust.org%'");
     }
 
     # sort | uniq
