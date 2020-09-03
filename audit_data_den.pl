@@ -34,21 +34,22 @@ my $insert_detail =
 my $select_record =
 "select zip_size, mets_size from feed_backups where namespace = ? and id = ? and version = ?";
 
-my $select_max_lastchecked =
-'select max(lastchecked) from feed_backups';
+my $select_now =
+'select now()';
 
 my $select_unchecked =
-'select namespace, id, version from feed_backups where lastchecked <= ?';
+'select namespace, id, version from feed_backups where lastchecked < ?';
 
 my $base = shift @ARGV or die("Missing base directory..");
 $base .= '/' unless substr($base, -1, 1) eq '/';
 
-my $last_run = '0000-00-00 00:00:00';
-my $sth = execute_stmt($select_max_lastchecked);
+my $now;
+my $sth = execute_stmt($select_now);
 if (my @row = $sth->fetchrow_array()) {
-  $last_run = $row[0];
+  $now = $row[0];
 }
 $sth->finish();
+die "Failed to determine current time.." unless defined $now;
 
 open( RUN, "find $base -follow -type f|" )
   or die("Can't open pipe to find: $!");
@@ -59,7 +60,6 @@ my $prevpath;
 while ( my $line = <RUN> ) {
   chomp($line);
 
-  #next if $line =~ /\Qpre_uplift.mets.xml\E/;
   # ignore temporary location
   next if $line =~ qr(obj/\.tmp);
 
@@ -73,7 +73,6 @@ while ( my $line = <RUN> ) {
     check_pairtree($pathinfo);
     check_files($pathinfo);
     check_record($pathinfo);
-    check_zip($pathinfo);
 
   };
 
@@ -82,7 +81,7 @@ while ( my $line = <RUN> ) {
   }
 }
 
-$sth = execute_stmt($select_unchecked, $last_run);
+$sth = execute_stmt($select_unchecked, $now);
 while (my @row = $sth->fetchrow_array()) {
   my $namespace = $row[0];
   my $id = $row[1];
@@ -187,76 +186,6 @@ sub check_record {
                  $pathinfo->{version}, $pathinfo->zipinfo->{zip_size},
                  $pathinfo->metsinfo->{mets_size});
   }
-}
-
-sub check_zip {
-  my $pathinfo = shift;
-  my $do_md5 = 1;
-  my $do_mets = 1;
-
-  # use google as a 'default' namespace for now
-  my $volume = new HTFeed::Volume(
-    packagetype => 'pkgtype',
-    namespace   => $pathinfo->{namespace},
-    objid       => $pathinfo->{pt_path_objid}
-  );
-
-  my $mets = $volume->_parse_xpc($pathinfo->metsinfo->{mets_path});
-  my $rval = undef;
-
-# Extract the checksum for the zip file that looks kind of like this:
-#  <METS:fileGrp ID="FG1" USE="zip archive">
-#     <METS:file ID="ZIP00000001" MIMETYPE="application/zip" SEQ="00000001" CREATED="2008-11-22T20:07:28" SIZE="30844759" CHECKSUM="42417b735ae73a3e16d1cca59c7fac08" CHECKSUMTYPE="MD5">
-#       <METS:FLocat LOCTYPE="OTHER" OTHERLOCTYPE="SYSTEM" xlink:href="39015603581748.zip" />
-#     </METS:file>
-#  </METS:fileGrp>
-
-  if ($do_md5) {
-    my $zipname = $pathinfo->{zipinfo}->{zip_file};
-
-    my $mets_zipsum = $mets->findvalue(
-      "//mets:file[mets:FLocat/\@xlink:href='$zipname']/\@CHECKSUM");
-
-    if(not defined $mets_zipsum or length($mets_zipsum) ne 32) {
-      # zip name may be uri-escaped in some cases
-      $zipname = uri_escape($zipname);
-      $mets_zipsum = $mets->findvalue(
-        "//mets:file[mets:FLocat/\@xlink:href='$zipname']/\@CHECKSUM");
-    }
-
-    if ( not defined $mets_zipsum or length($mets_zipsum) ne 32 ) {
-      set_status( $pathinfo->{namespace}, $pathinfo->{pt_path_objid}, $pathinfo->metsinfo->{mets_path},
-        "MISSING_METS_CHECKSUM", (defined $mets_zipsum)? $mets_zipsum : '<undef>' );
-    }
-    else {
-      my $realsum = HTFeed::VolumeValidator::md5sum(
-        $pathinfo->zipinfo->{zip_path} );
-      if ( $mets_zipsum eq $realsum ) {
-        $rval = 1;
-      }
-      else {
-        set_status( $pathinfo->{namespace}, $pathinfo->{pt_path_objid},
-          $pathinfo->{zipinfo}->{zip_path},
-          "BAD_CHECKSUM", "expected=$mets_zipsum actual=$realsum" );
-        $rval = 0;
-      }
-    }
-  }
-
-  if ($do_mets) {
-
-    {    # METS valid
-      my ( $mets_valid, $error ) =
-      HTFeed::METS::validate_xml( { volume => $volume },
-        $pathinfo->metsinfo->{mets_path} );
-      if ( !$mets_valid ) {
-        $error =~ s/\n/ /mg;
-        set_status( $pathinfo->{namespace}, $pathinfo->{pt_path_objid},
-          $pathinfo->metsinfo->{mets_path}, "INVALID_METS", $error );
-      }
-    }
-  }
-  return $rval;
 }
 
 
