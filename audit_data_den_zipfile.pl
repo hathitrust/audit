@@ -17,12 +17,29 @@ use Cwd;
 my $insert_detail =
 "insert into feed_audit_detail (namespace, id, path, status, detail) values (?,?,?,?,?)";
 
-my $zipfile = shift @ARGV or die("Missing zip file..");
-$zipfile = Cwd::abs_path($zipfile);
-die("zip file $zipfile does not exist") unless -f $zipfile;
-my $pathinfo = DataDenPath->new($zipfile);
-check_zip($pathinfo);
+my $update =
+"update feed_backups set md5check_ok = ?, lastmd5check = CURRENT_TIMESTAMP where namespace = ? and id = ?";
 
+my $zipfile = shift @ARGV or die("Missing zip file..");
+
+my $pathinfo = DataDenPath->new($zipfile);
+my $namespace = $pathinfo->{namespace};
+my $objid = $pathinfo->{pt_path_objid};
+
+eval {
+  $zipfile = Cwd::abs_path($zipfile);
+  die("zip file $zipfile does not exist") unless -f $zipfile;
+  my $rval = check_zip($pathinfo);
+  if ($rval) {
+    execute_stmt( $update, "1", $namespace, $objid );
+  }
+  elsif ( defined $rval ) {
+    execute_stmt( $update, "0", $namespace, $objid );
+  }
+};
+if ($@) {
+  set_status( $namespace, $objid, $zipfile, "CANT_ZIPCHECK", $@ );
+}
 
 sub set_status {
   warn( join( " ", @_ ), "\n" );

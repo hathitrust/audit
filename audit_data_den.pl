@@ -19,7 +19,7 @@ use POSIX qw(strftime);
 use URI::Escape;
 use DataDenPath;
 
-
+my $check_missing = 1;
 
 my $insert =
 'insert into feed_backups (namespace, id, version, zip_size, mets_size, lastchecked)'.
@@ -43,13 +43,13 @@ my $select_unchecked =
 my $base = shift @ARGV or die("Missing base directory..");
 $base .= '/' unless substr($base, -1, 1) eq '/';
 
-my $now;
+my $start_time;
 my $sth = execute_stmt($select_now);
 if (my @row = $sth->fetchrow_array()) {
-  $now = $row[0];
+  $start_time = $row[0];
 }
 $sth->finish();
-die "Failed to determine current time.." unless defined $now;
+die "Failed to determine current time.." unless defined $start_time;
 
 open( RUN, "find $base -follow -type f|" )
   or die("Can't open pipe to find: $!");
@@ -81,16 +81,22 @@ while ( my $line = <RUN> ) {
   }
 }
 
-$sth = execute_stmt($select_unchecked, $now);
-while (my @row = $sth->fetchrow_array()) {
-  my $namespace = $row[0];
-  my $id = $row[1];
-  my $version = $row[2];
-  my $where = join('/', $base, 'obj', $namespace, id2ppath($id), $id, $version);
-  $where =~ s,//,/,g;
-  set_status( $namespace, $id, $where, "DATA_DEN_MISSING", '' );
+check_missing_from_dataden($start_time) if $check_missing;
+
+sub check_missing_from_dataden {
+  my $start_time = shift;
+
+  $sth = execute_stmt($select_unchecked, $start_time);
+  while (my @row = $sth->fetchrow_array()) {
+    my $namespace = $row[0];
+    my $id = $row[1];
+    my $version = $row[2];
+    my $where = join('/', $base, 'obj', $namespace, id2ppath($id), $id, $version);
+    $where =~ s,//,/,g;
+    set_status( $namespace, $id, $where, "DATA_DEN_MISSING", '' );
+  }
+  $sth->finish();
 }
-$sth->finish();
 
 sub set_status {
   #warn( join( " ", @_ ), "\n" );
