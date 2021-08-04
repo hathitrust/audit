@@ -29,10 +29,10 @@ while(my $line = <>) {
     my ($google_state,$error_pct,$conditions,$src_lib) = 
     get_dbh()->selectrow_array("select state,overall_error,conditions,src_lib_bibkey from feed_grin where id = '$barcode' and namespace = 'mdp'");
     my ($queue_status,$lastupdate_days) = get_dbh()->selectrow_array("select status,datediff(CURRENT_TIMESTAMP,update_stamp) from feed_queue where id = '$barcode' and namespace = 'mdp'");
-    my ($blacklisted) = get_dbh()->selectrow_array("select count(*) from feed_blacklist where id = '$barcode' and namespace = 'mdp'");
+    my ($disallowed) = get_dbh()->selectrow_array("select count(*) from feed_queue_disallow where id = '$barcode' and namespace = 'mdp'");
 
-    if($blacklisted) {
-        $state = 'BLACKLISTED';
+    if($disallowed) {
+        $state = 'DISALLOWED';
     }
     elsif(not defined $queue_status or $queue_status eq 'done' or $queue_status eq 'collated' or $queue_status eq 'rights') {
         if(not defined $google_state) {
