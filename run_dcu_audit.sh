@@ -5,7 +5,7 @@ set -x
 
 AUDIT_HOME=/l/home/libadm/dcu_audit
 TODAY=$(date +"%Y%m%d")
-DCU_ARCHIVE=/quod-prep/prep/d/dcu/Archive
+DCU_ARCHIVE=/mnt/dcu_digifeeds/Archive
 THIS_AUDIT=$AUDIT_HOME/$TODAY
 
 mkdir -p $THIS_AUDIT
@@ -30,7 +30,7 @@ grep MD5_CHECK_OK $THIS_AUDIT/status | cut -f 1,3 | perl -pe 's/.*.\///; s/\.zip
   then echo "Empty folders removed:"
   sed 's/^\.\///' < $THIS_AUDIT/empty_dirs;
   else echo "No empty folders removed.";
-  fi ) | heirloom-mailx -s "Digifeeds ingested $(date +"%Y-%m-%d")" -a $THIS_AUDIT/digifeeds_ingested_paths_$TODAY.txt -a $THIS_AUDIT/digifeeds_ingested_barcodes_$TODAY.txt lit-cs-ingest@umich.edu mattlach@umich.edu ldunger@umich.edu khage@umich.edu lwentzel@umich.edu huangjq@umich.edu
+  fi ) | heirloom-mailx -s "Digifeeds ingested $(date +"%Y-%m-%d")" -a $THIS_AUDIT/digifeeds_ingested_paths_$TODAY.txt -a $THIS_AUDIT/digifeeds_ingested_barcodes_$TODAY.txt hathitrust-ingest@umich.edu mattlach@umich.edu ldunger@umich.edu lwentzel@umich.edu mrio@umich.edu
 
 # deprecated - digifeeds all get their source changed ahead of ingest now
 
